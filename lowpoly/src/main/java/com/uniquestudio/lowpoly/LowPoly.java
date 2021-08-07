@@ -1,10 +1,16 @@
 package com.uniquestudio.lowpoly;
 
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.util.Log;
+
+import ohos.agp.render.Canvas;
+import ohos.agp.render.Paint;
+import ohos.agp.render.Path;
+import ohos.agp.render.Texture;
+import ohos.agp.utils.Color;
+import ohos.media.image.PixelMap;
+import ohos.media.image.common.PixelFormat;
+import ohos.media.image.common.Position;
+import ohos.media.image.common.Rect;
+import ohos.media.image.common.Size;
 
 /**
  * Created by CoXier on 2016/9/14.
@@ -22,17 +28,21 @@ public class LowPoly {
      * @param gradientThresh
      * @return low poly bitmap
      */
-    public static Bitmap generate(Bitmap input, int gradientThresh) {
-        int width = input.getWidth();
-        int height = input.getHeight();
-        Bitmap newImage = Bitmap.createBitmap(input.getWidth(), input.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(newImage);
+    public static PixelMap generate(PixelMap input, int gradientThresh) {
+        int width = input.getImageInfo().size.width;
+        int height = input.getImageInfo().size.height;
+
+        PixelMap.InitializationOptions options = new PixelMap.InitializationOptions();
+        options.size = new Size(width, height);
+        options.pixelFormat = PixelFormat.ARGB_8888;
+        PixelMap newImage = PixelMap.create(options);
+        Canvas canvas = new Canvas(new Texture(newImage));
         Paint paint = new Paint();
         paint.setAntiAlias(false);
-        paint.setStyle(Paint.Style.FILL);
+        paint.setStyle(Paint.Style.FILL_STYLE);
         int x1, x2, x3, y1, y2, y3;
         int pixels[] = new int[width * height];
-        input.getPixels(pixels,0,width,0,0,width,height);
+        input.readPixels(pixels,0,width,new Rect(0,0,width,height));
         int[] triangles = getTriangles(pixels, width, height,gradientThresh);
         for (int i = 0; i < triangles.length; i = i + 6) {
             x1 = triangles[i];
@@ -42,13 +52,13 @@ public class LowPoly {
             x3 = triangles[i + 4];
             y3 = triangles[i + 5];
 
-            int color = input.getPixel((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3);
+            int color = input.readPixel(new Position((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3));
             Path path = new Path();
             path.moveTo(x1, y1);
             path.lineTo(x2, y2);
             path.lineTo(x3, y3);
             path.close();
-            paint.setColor(color);
+            paint.setColor(new Color(color));
             canvas.drawPath(path, paint);
         }
         return newImage;
